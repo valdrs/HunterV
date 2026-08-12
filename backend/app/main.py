@@ -1,9 +1,7 @@
 from fastapi import FastAPI
 
-from app.db.database import Base, engine
 from app.models.target import Target
-
-Base.metadata.create_all(bind=engine)
+from app.models.finding import Finding
 
 app = FastAPI(
     title="HunterV API",
