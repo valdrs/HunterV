@@ -14,6 +14,11 @@ from app.api.target_routes import router as target_router
 
 app.include_router(target_router)
 
+from app.api.finding_routes import router as finding_router
+
+app.include_router(target_router)
+app.include_router(finding_router)
+
 
 @app.get("/")
 def home():
