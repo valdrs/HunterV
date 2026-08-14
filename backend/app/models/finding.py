@@ -22,6 +22,10 @@ class Finding(Base):
 
     description = Column(Text)
 
+    poc = Column(Text)
+
+    poc_type = Column(String)
+
     status = Column(String, default="Open")
 
     target_id = Column(

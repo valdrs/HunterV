@@ -34,6 +34,8 @@ def create_finding(
         title=finding.title,
         severity=finding.severity or "Info",
         description=finding.description,
+        poc=finding.poc,
+        poc_type=finding.poc_type,
         status=finding.status or "Open",
         target_id=finding.target_id,
     )
