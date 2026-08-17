@@ -17,7 +17,6 @@ from app.services.target_service import (
     delete_target,
 )
 
-print(">>> target_routes.py imported successfully")
 
 router = APIRouter(
     prefix="/targets",
