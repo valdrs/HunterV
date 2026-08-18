@@ -47,8 +47,64 @@ def create_finding(
     return db_finding
 
 
-def get_findings(db: Session) -> list[Finding]:
-    return db.query(Finding).all()
+def get_findings(
+    db: Session,
+    severity: str | None = None,
+    status: str | None = None,
+    target_id: int | None = None,
+    skip: int = 0,
+    limit: int = 20,
+    sort: str = "id",
+    order: str = "asc",
+) -> list[Finding]:
+
+    query = db.query(Finding) 
+
+    if severity is not None:
+        query = query.filter(Finding.severity == severity)
+
+    if status is not None:
+        query = query.filter(Finding.status == status)
+
+    if target_id is not None:
+        query = query.filter(Finding.target_id == target_id)
+
+    sort_fields = {
+    "id": Finding.id,
+    "severity": Finding.severity,
+    "status": Finding.status,
+    "target_id": Finding.target_id,
+    }
+
+    column = sort_fields[sort]
+
+    if order == "desc":
+       query = query.order_by(column.desc())
+    else:
+       query = query.order_by(column.asc())
+
+    query = query.offset(skip).limit(limit)
+
+    return query.all()
+
+
+def get_findings_for_target(
+    db: Session,
+    target_id: int,
+    skip: int = 0,
+    limit: int = 20,
+    sort: str = "id",
+    order: str = "asc",
+) -> list[Finding]:
+
+    return get_findings(
+        db=db,
+        target_id=target_id,
+        skip=skip,
+        limit=limit,
+        sort=sort,
+        order=order,
+    )
 
 
 def get_finding_by_id(

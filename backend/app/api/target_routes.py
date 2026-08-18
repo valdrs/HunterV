@@ -1,14 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Query
 from sqlalchemy.orm import Session
-
+from app.services.finding_service import get_findings_for_target
 from app.db.dependencies import get_db
-
+from app.schemas.finding import FindingResponse
 from app.schemas.target import (
     TargetCreate,
     TargetResponse,
     TargetUpdate,
 )
-
+from app.schemas.finding_query import (
+    FindingSort,
+    SortOrder,
+)
+from app.services.finding_service import (
+    get_findings_for_target,
+)
 from app.services.target_service import (
     create_target,
     get_targets,
@@ -33,6 +39,35 @@ def create_new_target(
     db: Session = Depends(get_db)
 ):
     return create_target(db, target)
+
+@router.get(
+    "/{target_id}/findings",
+    response_model=list[FindingResponse]
+)
+def read_target_findings(
+    target_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    sort: FindingSort = FindingSort.ID,
+    order: SortOrder = SortOrder.ASC,
+    db: Session = Depends(get_db)
+):
+    target = get_target_by_id(db, target_id)
+
+    if target is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Target not found"
+        )
+
+    return get_findings_for_target(
+        db=db,
+        target_id=target_id,
+        skip=skip,
+        limit=limit,
+        sort=sort.value,
+        order=order.value,
+    )
 
 @router.get(
     "/",
