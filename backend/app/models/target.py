@@ -32,3 +32,9 @@ class Target(Base):
       back_populates="target",
       cascade="all, delete-orphan",
     )
+
+    subdomains = relationship(
+    "Subdomain",
+    back_populates="target",
+    cascade="all, delete-orphan",
+)

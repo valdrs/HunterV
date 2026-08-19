@@ -26,6 +26,7 @@ from app.db.database import Base
 
 from app.models.target import Target
 from app.models.finding import Finding
+from app.models.subdomain import Subdomain
 
 target_metadata = Base.metadata
 
