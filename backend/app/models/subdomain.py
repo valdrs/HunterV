@@ -1,11 +1,13 @@
 from sqlalchemy import (
     Column,
+    DateTime,
     ForeignKey,
     Integer,
     String,
     UniqueConstraint,
     )
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from app.db.database import Base
 
@@ -40,6 +42,18 @@ class Subdomain(Base):
     source = Column(
         String,
         nullable=True
+    )
+
+    first_seen = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    last_seen = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )
 
     target_id = Column(

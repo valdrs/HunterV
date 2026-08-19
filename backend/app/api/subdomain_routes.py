@@ -8,7 +8,6 @@ from app.schemas.subdomain import (
 )
 
 from app.services.subdomain_service import (
-    DuplicateSubdomainError,
     create_subdomain,
     get_subdomains,
 )
@@ -28,16 +27,10 @@ def create_new_subdomain(
     subdomain: SubdomainCreate,
     db: Session = Depends(get_db)
 ):
-    try:
-        result = create_subdomain(
-            db,
-            subdomain
-        )
-    except DuplicateSubdomainError:
-        raise HTTPException(
-            status_code=409,
-            detail="Subdomain already exists for this target"
-        )
+    result = create_subdomain(
+        db,
+        subdomain
+    )
 
     if result is None:
         raise HTTPException(

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -14,5 +16,7 @@ class SubdomainResponse(BaseModel):
     status: str
     source: str | None
     target_id: int
+    first_seen: datetime
+    last_seen: datetime
 
     model_config = ConfigDict(from_attributes=True)

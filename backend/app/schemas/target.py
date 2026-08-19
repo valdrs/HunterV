@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
-
+from app.schemas.subdomain import SubdomainResponse
 
 class TargetCreate(BaseModel):
     name: str
@@ -19,6 +19,7 @@ class TargetResponse(BaseModel):
     status: str
     notes: str | None
     created_at: datetime
+    subdomains: list[SubdomainResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
