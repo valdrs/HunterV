@@ -1,5 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, Query
 from sqlalchemy.orm import Session
+
+from app.models.target import Target
+
 from app.services.finding_service import get_findings_for_target
 from app.db.dependencies import get_db
 from app.schemas.finding import FindingResponse
@@ -22,7 +25,8 @@ from app.services.target_service import (
     update_target,
     delete_target,
 )
-
+from app.services.recon.subdomain_recon import run_subdomain_recon
+from app.services.recon.subfinder import SubfinderError
 
 router = APIRouter(
     prefix="/targets",
@@ -136,3 +140,32 @@ def delete_existing_target(
         )
 
     return Response(status_code=204)
+
+@router.post("/{target_id}/recon/subdomains")
+def recon_subdomains(
+    target_id: int,
+    db: Session = Depends(get_db),
+):
+    target = (
+        db.query(Target)
+        .filter(Target.id == target_id)
+        .first()
+    )
+
+    if target is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Target not found",
+        )
+
+    try:
+        return run_subdomain_recon(
+            db=db,
+            target=target,
+        )
+
+    except SubfinderError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        )

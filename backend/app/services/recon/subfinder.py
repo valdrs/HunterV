@@ -8,7 +8,23 @@ class SubfinderError(Exception):
 
 
 def extract_hostname(base_url: str) -> str:
-    parsed = urlparse(base_url)
+    """
+    Extract a clean hostname from either a full URL or a bare domain.
+    """
+
+    value = base_url.strip()
+
+    if not value:
+        raise SubfinderError(
+            "Target URL cannot be empty."
+        )
+
+    # urlparse treats "example.com" as a path,
+    # so add a scheme when one is missing.
+    if "://" not in value:
+        value = f"https://{value}"
+
+    parsed = urlparse(value)
 
     hostname = parsed.hostname
 
@@ -17,7 +33,7 @@ def extract_hostname(base_url: str) -> str:
             f"Could not extract hostname from target URL: {base_url}"
         )
 
-    return hostname
+    return hostname.lower().rstrip(".")
 
 
 def run_subfinder(base_url: str) -> list[str]:
@@ -35,10 +51,14 @@ def run_subfinder(base_url: str) -> list[str]:
     domain = extract_hostname(base_url)
 
     command = [
-        subfinder_path,
+        "subfinder",
         "-d",
         domain,
         "-silent",
+        "-timeout",
+        "10",
+        "-max-time",
+        "2",
     ]
 
     try:
@@ -46,7 +66,7 @@ def run_subfinder(base_url: str) -> list[str]:
             command,
             capture_output=True,
             text=True,
-            timeout=300,
+            timeout=180,
             check=False,
         )
 
