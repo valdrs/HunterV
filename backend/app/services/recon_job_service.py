@@ -26,10 +26,26 @@ def create_recon_job(
     return job
 
 
+def get_recon_job(
+    db: Session,
+    job_id: int,
+) -> ReconJob | None:
+    return (
+        db.query(ReconJob)
+        .filter(ReconJob.id == job_id)
+        .first()
+    )
+
+
 def mark_job_started(
     db: Session,
-    job: ReconJob,
-) -> ReconJob:
+    job_id: int,
+) -> ReconJob | None:
+    job = get_recon_job(db, job_id)
+
+    if job is None:
+        return None
+
     job.status = "running"
     job.started_at = datetime.now(timezone.utc)
 
@@ -41,8 +57,13 @@ def mark_job_started(
 
 def mark_job_completed(
     db: Session,
-    job: ReconJob,
-) -> ReconJob:
+    job_id: int,
+) -> ReconJob | None:
+    job = get_recon_job(db, job_id)
+
+    if job is None:
+        return None
+
     job.status = "completed"
     job.completed_at = datetime.now(timezone.utc)
 
@@ -54,9 +75,14 @@ def mark_job_completed(
 
 def mark_job_failed(
     db: Session,
-    job: ReconJob,
+    job_id: int,
     error: str,
-) -> ReconJob:
+) -> ReconJob | None:
+    job = get_recon_job(db, job_id)
+
+    if job is None:
+        return None
+
     job.status = "failed"
     job.error = error
     job.completed_at = datetime.now(timezone.utc)

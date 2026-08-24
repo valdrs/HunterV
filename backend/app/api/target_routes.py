@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, Query
 from sqlalchemy.orm import Session
 
 from app.models.target import Target
@@ -25,9 +25,8 @@ from app.services.target_service import (
     update_target,
     delete_target,
 )
-from app.services.recon.subdomain_recon import run_subdomain_recon
-from app.services.recon.subfinder import SubfinderError
 
+from app.services.recon.recon_worker import execute_subdomain_recon_job
 from app.services.recon_job_service import (
     create_recon_job,
     mark_job_started,
@@ -151,6 +150,7 @@ def delete_existing_target(
 @router.post("/{target_id}/recon/subdomains")
 def recon_subdomains(
     target_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     target = (
@@ -167,52 +167,21 @@ def recon_subdomains(
 
     job = create_recon_job(
         db=db,
-        target_id=target.id,
+        target_id=target_id,
         job_type="subdomain_recon",
         source="subfinder",
     )
 
-    try:
-        mark_job_started(
-            db=db,
-            job=job,
-        )
+    background_tasks.add_task(
+        execute_subdomain_recon_job,
+        job.id,
+        target_id,
+    )
 
-        result = run_subdomain_recon(
-            db=db,
-            target=target,
-        )
-
-        mark_job_completed(
-            db=db,
-            job=job,
-        )
-
-        result["job_id"] = job.id
-        result["job_status"] = job.status
-
-        return result
-
-    except SubfinderError as exc:
-        mark_job_failed(
-            db=db,
-            job=job,
-            error=str(exc),
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(exc),
-        )
-
-    except Exception as exc:
-        mark_job_failed(
-            db=db,
-            job=job,
-            error=str(exc),
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail="Reconnaissance failed",
-        )
+    return {
+        "job_id": job.id,
+        "target_id": target_id,
+        "job_type": job.job_type,
+        "source": job.source,
+        "status": job.status,
+    }
