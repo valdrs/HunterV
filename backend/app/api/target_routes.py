@@ -28,6 +28,13 @@ from app.services.target_service import (
 from app.services.recon.subdomain_recon import run_subdomain_recon
 from app.services.recon.subfinder import SubfinderError
 
+from app.services.recon_job_service import (
+    create_recon_job,
+    mark_job_started,
+    mark_job_completed,
+    mark_job_failed,
+)
+
 router = APIRouter(
     prefix="/targets",
     tags=["Targets"]
@@ -158,14 +165,54 @@ def recon_subdomains(
             detail="Target not found",
         )
 
+    job = create_recon_job(
+        db=db,
+        target_id=target.id,
+        job_type="subdomain_recon",
+        source="subfinder",
+    )
+
     try:
-        return run_subdomain_recon(
+        mark_job_started(
+            db=db,
+            job=job,
+        )
+
+        result = run_subdomain_recon(
             db=db,
             target=target,
         )
 
+        mark_job_completed(
+            db=db,
+            job=job,
+        )
+
+        result["job_id"] = job.id
+        result["job_status"] = job.status
+
+        return result
+
     except SubfinderError as exc:
+        mark_job_failed(
+            db=db,
+            job=job,
+            error=str(exc),
+        )
+
         raise HTTPException(
             status_code=500,
             detail=str(exc),
+        )
+
+    except Exception as exc:
+        mark_job_failed(
+            db=db,
+            job=job,
+            error=str(exc),
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Reconnaissance failed",
         )

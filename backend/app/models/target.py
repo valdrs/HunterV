@@ -37,4 +37,10 @@ class Target(Base):
     "Subdomain",
     back_populates="target",
     cascade="all, delete-orphan",
-)
+    )
+
+    recon_jobs = relationship(
+    "ReconJob",
+    back_populates="target",
+    cascade="all, delete-orphan",
+    )
