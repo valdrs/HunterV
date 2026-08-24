@@ -1,19 +1,11 @@
 from sqlalchemy.orm import Session
-
 from app.models.target import Target
 from app.models.subdomain import Subdomain
-from app.schemas.subdomain import SubdomainCreate
-from app.services.recon.subfinder import (
-    run_subfinder,
-    SubfinderError,
-)
-from app.services.subdomain_service import create_subdomain
+from app.services.recon.subfinder import run_subfinder
+from app.services.subdomain_service import upsert_subdomains
 
 
 def normalize_hostname(hostname: str) -> str | None:
-    """
-    Normalize a hostname returned by a reconnaissance tool.
-    """
 
     hostname = hostname.strip().lower()
 
@@ -47,42 +39,20 @@ def run_subdomain_recon(
         if normalized:
             normalized_hosts.add(normalized)
 
-    created = 0
-    updated = 0
-    persisted_hosts = []
+    normalized_hosts = sorted(normalized_hosts)
 
-    for hostname in sorted(normalized_hosts):
+    subdomains, created, updated = upsert_subdomains(
+        db=db,
+        target_id=target.id,
+        hostnames=normalized_hosts,
+        source="subfinder",
+        status="discovered",
+    )
 
-        existing = (
-            db.query(Subdomain)
-            .filter(
-                Subdomain.target_id == target.id,
-                Subdomain.hostname == hostname,
-            )
-            .first()
-        )
-
-        subdomain = create_subdomain(
-            db,
-            SubdomainCreate(
-                hostname=hostname,
-                target_id=target.id,
-                status="discovered",
-                source="subfinder",
-            ),
-        )
-
-        if subdomain is None:
-            continue
-
-        if existing:
-            updated += 1
-        else:
-            created += 1
-
-        persisted_hosts.append(
-            subdomain.hostname
-        )
+    persisted_hosts = [
+        subdomain.hostname
+        for subdomain in subdomains
+    ]
 
     return {
         "target_id": target.id,
@@ -91,4 +61,4 @@ def run_subdomain_recon(
         "created": created,
         "updated": updated,
         "subdomains": persisted_hosts,
-    }
+        }
