@@ -1,4 +1,11 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response, Query
+from fastapi import (
+    APIRouter, 
+    BackgroundTasks, 
+    Depends, 
+    HTTPException, 
+    Response, 
+    Query,
+)
 from sqlalchemy.orm import Session
 
 from app.models.target import Target
@@ -6,6 +13,7 @@ from app.models.target import Target
 from app.services.finding_service import get_findings_for_target
 from app.db.dependencies import get_db
 from app.schemas.finding import FindingResponse
+from app.schemas.recon_job import ReconJobResponse
 from app.schemas.target import (
     TargetCreate,
     TargetResponse,
@@ -29,9 +37,7 @@ from app.services.target_service import (
 from app.services.recon.recon_worker import execute_subdomain_recon_job
 from app.services.recon_job_service import (
     create_recon_job,
-    mark_job_started,
-    mark_job_completed,
-    mark_job_failed,
+    get_active_recon_job,
 )
 
 router = APIRouter(
@@ -149,6 +155,7 @@ def delete_existing_target(
 
 @router.post(
     "/{target_id}/recon/subdomains",
+    response_model=ReconJobResponse,
     status_code=202,
 )
 def recon_subdomains(
@@ -168,6 +175,16 @@ def recon_subdomains(
             detail="Target not found",
         )
 
+    active_job = get_active_recon_job(
+        db=db,
+        target_id=target_id,
+        job_type="subdomain_recon",
+        source="subfinder",
+    )
+
+    if active_job is not None:
+        return active_job
+
     job = create_recon_job(
         db=db,
         target_id=target_id,
@@ -181,4 +198,4 @@ def recon_subdomains(
         target_id,
     )
 
-    return job 
+    return job

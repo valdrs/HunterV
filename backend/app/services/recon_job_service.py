@@ -36,6 +36,23 @@ def get_recon_job(
         .first()
     )
 
+def get_active_recon_job(
+    db: Session,
+    target_id: int,
+    job_type: str,
+    source: str,
+) -> ReconJob | None:
+    return (
+        db.query(ReconJob)
+        .filter(
+            ReconJob.target_id == target_id,
+            ReconJob.job_type == job_type,
+            ReconJob.source == source,
+            ReconJob.status.in_(["queued", "running"]),
+        )
+        .order_by(ReconJob.id.desc())
+        .first()
+    )
 
 def mark_job_started(
     db: Session,
