@@ -158,6 +158,10 @@ def delete_existing_target(
     "/{target_id}/recon/subdomains",
     response_model=ReconJobResponse,
     status_code=202,
+    responses={
+        404: {"description": "Target not found"},
+        409: {"description": "An active recon job already exists"},
+    },
 )
 def recon_subdomains(
     target_id: int,
