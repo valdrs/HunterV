@@ -48,6 +48,8 @@ def execute_subdomain_recon_job(
         )
 
     except SubfinderError as exc:
+        db.rollback()
+
         mark_job_failed(
             db,
             job_id,
@@ -55,11 +57,13 @@ def execute_subdomain_recon_job(
         )
 
     except Exception as exc:
+        db.rollback()
+
         mark_job_failed(
             db,
             job_id,
             str(exc),
         )
-
+        
     finally:
         db.close()
