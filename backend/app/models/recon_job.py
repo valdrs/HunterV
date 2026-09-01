@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
-
+from sqlalchemy import Index
 from app.db.database import Base
 
 
@@ -60,3 +60,15 @@ class ReconJob(Base):
         "Target",
         back_populates="recon_jobs",
     )
+
+    __table_args__ = (
+    Index(
+        "uq_active_subdomain_recon_job",
+        "target_id",
+        unique=True,
+        sqlite_where=(
+            (job_type == "subdomain_recon")
+            & (status.in_(["queued", "running"]))
+        ),
+    ),
+)

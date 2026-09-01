@@ -36,6 +36,7 @@ from app.services.target_service import (
 
 from app.services.recon.recon_worker import execute_subdomain_recon_job
 from app.services.recon_job_service import (
+    ActiveReconJobError,
     create_recon_job,
     get_active_recon_job,
 )
@@ -183,14 +184,23 @@ def recon_subdomains(
     )
 
     if active_job is not None:
-        return active_job
+        raise HTTPException(
+            status_code=409,
+            detail="A subdomain reconnaissance job is already active for this target.",
+        )
 
-    job = create_recon_job(
-        db=db,
-        target_id=target_id,
-        job_type="subdomain_recon",
-        source="subfinder",
-    )
+    try:
+        job = create_recon_job(
+            db=db,
+            target_id=target_id,
+            job_type="subdomain_recon",
+            source="subfinder",
+        )
+    except ActiveReconJobError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        )
 
     background_tasks.add_task(
         execute_subdomain_recon_job,

@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.recon_job import ReconJob
 
+class ActiveReconJobError(Exception):
+    """Raised when a target already has an active recon job."""
 
 def create_recon_job(
     db: Session,
@@ -20,7 +23,19 @@ def create_recon_job(
     )
 
     db.add(job)
-    db.commit()
+
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+
+        if job_type == "subdomain_recon":
+            raise ActiveReconJobError(
+                "A subdomain reconnaissance job is already active for this target."
+            ) from exc
+
+        raise
+
     db.refresh(job)
 
     return job
