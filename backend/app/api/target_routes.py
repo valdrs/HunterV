@@ -147,7 +147,10 @@ def delete_existing_target(
 
     return Response(status_code=204)
 
-@router.post("/{target_id}/recon/subdomains")
+@router.post(
+    "/{target_id}/recon/subdomains",
+    status_code=202,
+)
 def recon_subdomains(
     target_id: int,
     background_tasks: BackgroundTasks,
@@ -178,10 +181,4 @@ def recon_subdomains(
         target_id,
     )
 
-    return {
-        "job_id": job.id,
-        "target_id": target_id,
-        "job_type": job.job_type,
-        "source": job.source,
-        "status": job.status,
-    }
+    return job 
