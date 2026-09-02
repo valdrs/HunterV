@@ -38,6 +38,7 @@ from app.services.asset_service import get_assets
 from app.services.recon.recon_worker import (
     execute_subdomain_recon_job,
     execute_asset_recon_job,
+    execute_full_recon_job,
 )
 from app.services.recon_job_service import (
     ActiveReconJobError,
@@ -233,6 +234,66 @@ def recon_subdomains(
 
     background_tasks.add_task(
         execute_subdomain_recon_job,
+        job.id,
+        target_id,
+    )
+
+    return job
+
+@router.post(
+    "/{target_id}/recon",
+    response_model=ReconJobResponse,
+    status_code=202,
+    responses={
+        404: {"description": "Target not found"},
+        409: {"description": "An active full recon job already exists"},
+    },
+)
+def recon_target(
+    target_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    target = (
+        db.query(Target)
+        .filter(Target.id == target_id)
+        .first()
+    )
+
+    if target is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Target not found",
+        )
+
+    active_job = get_active_recon_job(
+        db=db,
+        target_id=target_id,
+        job_type="full_recon",
+        source="hunterv",
+    )
+
+    if active_job is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="A full reconnaissance job is already active for this target.",
+        )
+
+    try:
+        job = create_recon_job(
+            db=db,
+            target_id=target_id,
+            job_type="full_recon",
+            source="hunterv",
+        )
+    except ActiveReconJobError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        )
+
+    background_tasks.add_task(
+        execute_full_recon_job,
         job.id,
         target_id,
     )
