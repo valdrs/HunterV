@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
@@ -42,7 +42,7 @@ class ReconJob(Base):
 
     created_at = Column(
         DateTime,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
 
@@ -62,31 +62,12 @@ class ReconJob(Base):
     )
 
     __table_args__ = (
-    Index(
-        "uq_active_subdomain_recon_job",
-        "target_id",
-        unique=True,
-        sqlite_where=(
-            (job_type == "subdomain_recon")
-            & (status.in_(["queued", "running"]))
+        Index(
+            "uq_active_recon_job",
+            "target_id",
+            unique=True,
+            sqlite_where=(
+                status.in_(["queued", "running"])
+            ),
         ),
-    ),
-    Index(
-        "uq_active_asset_recon_job",
-        "target_id",
-        unique=True,
-        sqlite_where=(
-            (job_type == "asset_recon")
-            & (status.in_(["queued", "running"]))
-        ),
-    ),
-    Index(
-        "uq_active_full_recon_job",
-        "target_id",
-        unique=True,
-        sqlite_where=(
-            (job_type == "full_recon")
-            & (status.in_(["queued", "running"]))
-        ),
-    ),
-    )    
+    ) 

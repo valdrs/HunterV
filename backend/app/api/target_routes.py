@@ -44,6 +44,7 @@ from app.services.recon_job_service import (
     ActiveReconJobError,
     create_recon_job,
     get_active_recon_job,
+    get_any_active_recon_job,
 )
 
 router = APIRouter(
@@ -206,19 +207,20 @@ def recon_subdomains(
             detail="Target not found",
         )
 
-    active_job = get_active_recon_job(
+    active_job = get_any_active_recon_job(
         db=db,
         target_id=target_id,
-        job_type="subdomain_recon",
-        source="subfinder",
     )
 
     if active_job is not None:
         raise HTTPException(
             status_code=409,
-            detail="A subdomain reconnaissance job is already active for this target.",
+            detail=(
+                f"An active {active_job.job_type} job "
+                "already exists for this target."
+            ),
         )
-
+    
     try:
         job = create_recon_job(
             db=db,
