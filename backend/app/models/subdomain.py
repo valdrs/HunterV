@@ -70,4 +70,5 @@ class Subdomain(Base):
     assets = relationship(
         "Asset",
         back_populates="subdomain",
+        cascade="all, delete-orphan",
     )
