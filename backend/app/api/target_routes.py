@@ -14,6 +14,7 @@ from app.services.finding_service import get_findings_for_target
 from app.db.dependencies import get_db
 from app.schemas.finding import FindingResponse
 from app.schemas.recon_job import ReconJobResponse
+from app.schemas.asset import AssetResponse
 from app.schemas.target import (
     TargetCreate,
     TargetResponse,
@@ -33,8 +34,11 @@ from app.services.target_service import (
     update_target,
     delete_target,
 )
-
-from app.services.recon.recon_worker import execute_subdomain_recon_job
+from app.services.asset_service import get_assets
+from app.services.recon.recon_worker import (
+    execute_subdomain_recon_job,
+    execute_asset_recon_job,
+)
 from app.services.recon_job_service import (
     ActiveReconJobError,
     create_recon_job,
@@ -84,6 +88,27 @@ def read_target_findings(
         limit=limit,
         sort=sort.value,
         order=order.value,
+    )
+
+@router.get(
+    "/{target_id}/assets",
+    response_model=list[AssetResponse],
+)
+def read_target_assets(
+    target_id: int,
+    db: Session = Depends(get_db),
+):
+    target = get_target_by_id(db, target_id)
+
+    if target is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Target not found",
+        )
+
+    return get_assets(
+        db=db,
+        target_id=target_id,
     )
 
 @router.get(
@@ -208,6 +233,66 @@ def recon_subdomains(
 
     background_tasks.add_task(
         execute_subdomain_recon_job,
+        job.id,
+        target_id,
+    )
+
+    return job
+
+@router.post(
+    "/{target_id}/recon/assets",
+    response_model=ReconJobResponse,
+    status_code=202,
+    responses={
+        404: {"description": "Target not found"},
+        409: {"description": "An active asset recon job already exists"},
+    },
+)
+def recon_assets(
+    target_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    target = (
+        db.query(Target)
+        .filter(Target.id == target_id)
+        .first()
+    )
+
+    if target is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Target not found",
+        )
+
+    active_job = get_active_recon_job(
+        db=db,
+        target_id=target_id,
+        job_type="asset_recon",
+        source="httpx",
+    )
+
+    if active_job is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="An asset reconnaissance job is already active for this target.",
+        )
+
+    try:
+        job = create_recon_job(
+            db=db,
+            target_id=target_id,
+            job_type="asset_recon",
+            source="httpx",
+        )
+    except ActiveReconJobError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        )
+
+    background_tasks.add_task(
+        execute_asset_recon_job,
         job.id,
         target_id,
     )

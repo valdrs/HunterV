@@ -71,4 +71,13 @@ class ReconJob(Base):
             & (status.in_(["queued", "running"]))
         ),
     ),
-)
+    Index(
+            "uq_active_asset_recon_job",
+            "target_id",
+            unique=True,
+            sqlite_where=(
+                (job_type == "asset_recon")
+                & (status.in_(["queued", "running"]))
+            ),
+        ),
+    )

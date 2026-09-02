@@ -26,15 +26,13 @@ def create_recon_job(
 
     try:
         db.commit()
+
     except IntegrityError as exc:
         db.rollback()
 
-        if job_type == "subdomain_recon":
-            raise ActiveReconJobError(
-                "A subdomain reconnaissance job is already active for this target."
-            ) from exc
-
-        raise
+        raise ActiveReconJobError(
+            f"An active {job_type} job already exists for this target."
+        ) from exc
 
     db.refresh(job)
 
