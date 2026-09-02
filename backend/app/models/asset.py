@@ -5,43 +5,56 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
-    )
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.db.database import Base
 
 
-class Subdomain(Base):
-    __tablename__ = "subdomains"
+class Asset(Base):
+    __tablename__ = "assets"
 
     __table_args__ = (
         UniqueConstraint(
             "target_id",
             "hostname",
-            name="uq_subdomain_target_hostname",
+            "port",
+            "protocol",
+            name="uq_asset_target_hostname_port_protocol",
         ),
     )
 
     id = Column(
         Integer,
         primary_key=True,
-        index=True
+        index=True,
     )
 
     hostname = Column(
         String,
-        nullable=False
+        nullable=False,
+    )
+
+    protocol = Column(
+        String,
+        nullable=False,
+    )
+
+    port = Column(
+        Integer,
+        nullable=False,
     )
 
     status = Column(
         String,
-        default="discovered"
+        default="discovered",
+        nullable=False,
     )
 
     source = Column(
         String,
-        nullable=True
+        nullable=True,
     )
 
     first_seen = Column(
@@ -59,15 +72,21 @@ class Subdomain(Base):
     target_id = Column(
         Integer,
         ForeignKey("targets.id"),
-        nullable=False
+        nullable=False,
+    )
+
+    subdomain_id = Column(
+        Integer,
+        ForeignKey("subdomains.id"),
+        nullable=True,
     )
 
     target = relationship(
         "Target",
-        back_populates="subdomains"
+        back_populates="assets",
     )
 
-    assets = relationship(
-        "Asset",
-        back_populates="subdomain",
+    subdomain = relationship(
+        "Subdomain",
+        back_populates="assets",
     )

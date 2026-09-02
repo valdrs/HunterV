@@ -44,3 +44,9 @@ class Target(Base):
     back_populates="target",
     cascade="all, delete-orphan",
     )
+
+    assets = relationship(
+    "Asset",
+    back_populates="target",
+    cascade="all, delete-orphan",
+    )
